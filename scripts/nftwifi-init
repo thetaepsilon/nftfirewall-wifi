@@ -1,0 +1,57 @@
+#!/bin/sh
+
+sysexit_EX_DATAERR=65;
+sysexit_EX_SOFTWARE=70;
+sysexit_EX_OSFILE=72;
+
+warn() {
+	echo "[warn] $0: $1" >&2;
+}
+
+die() {
+	echo "[fatal] $0: $1" >&2;
+	exit "$2";
+}
+
+conffail() {
+	die "Unable to read config file: $1 ($2)" "$sysexit_EX_OSFILE";
+}
+
+# eww, implicit assigning to global scope... but it's useful here, at least.
+readpath() {
+	_result=$(cat "$1") || conffail "$2" "$1";
+	eval "$3=\$_result";
+}
+
+trymkdir() {
+	# was going to use EX_NOPERM but that may not be the only failure mode.
+	mkdir "$1" || die "Cannot create directory: $2 ($1)" "$sysexit_EX_SOFTWARE";
+}
+
+readpath "/etc/paths/nftwifi" "main configuration path" "etc";
+runcfg="$etc/runtimeconf";
+readpath "$runcfg/path" "runtime directory path" "runpath";
+readpath "$runcfg/owner" "runtime directory owner" "runtimeowner";
+readpath "$runcfg/group" "runtime directory group" "runtimegroup";
+readpath "$runcfg/umask" "runtime directory umask" "runtimeumask";
+echo "Runtime directory: $runpath";
+
+# in case of resetting the configuration: test if the path exists already.
+if test -e "$runpath"; then {
+	# if it exists but isn't a directory, something is very wrong.
+	# assumptions are broken, we can't do anything, so bail out
+	if test ! -d "$runpath"; then {
+		die "Runtime path $runpath was not a directory. Don't know how to proceed, bailing" "$sysexit_EX_SOFTWARE";
+	}; else {
+		warn "runtime directory path already exists, removing and re-populating";
+		# why is there no posix form of --interactive=never...
+		# thankfully it seems rm will shut up if stdin != tty.
+		rm -r -- "$runpath" </dev/null || die "Couldn't remove existing runtime directory" "$sysexit_EX_SOFTWARE";
+	}; fi;
+}; fi;
+
+umask "$runtimeumask" || die "Bad umask setting $runtimeumask" "$sysexit_EX_DATAERR";
+trymkdir "$runpath" "main runtime directory";
+cp -r "$runcfg/profiles.default/" "$runpath/profiles" || die "Can't copy default profile selectors" "$sysexit_EX_SOFTWARE";
+mode="$runtimeowner:$runtimegroup";
+chown -R "$mode" "$runpath" || die "Could not change ownership of $runpath to $mode" "$sysexit_EX_SOFTWARE";

@@ -1,0 +1,7 @@
+[Unit]
+Description=initialise nftwifi runtime directory
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/nftwifi-init
