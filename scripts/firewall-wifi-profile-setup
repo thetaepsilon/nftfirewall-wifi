@@ -1,35 +1,49 @@
 #!/bin/sh
 
 # borrowed from sysexits.h
-EX_USAGE=64;
-EX_CONFIG=78;
-EX_OSERROR=71;
-EX_OSFILE=72;
+sysexit_EX_OSERROR=71;
+sysexit_EX_USAGE=64;
+sysexit_EX_OSFILE=72;
 
-pathfail() {
-	echo "Failed to load configuration file: $1 ($2)" >&2;
-	exit $EX_CONFIG;
+warn() {
+	echo "[warn] $0: $1" >&2;
+}
+
+die() {
+	echo "[fatal] $0: $1" >&2;
+	exit "$2";
+}
+
+conffail() {
+	die "Unable to read config file: $1 ($2)" "$sysexit_EX_OSFILE";
+}
+
+readpath() {
+	_result=$(cat "$1") || conffail "$2" "$1";
+	eval "$3=\$_result";
 }
 
 updatefail() {
-	echo "Updating configuration failed: $1 ($2)" >&2;
-	exit $EX_OSFILE;
+	die "Updating configuration failed: $1 ($2)" $sysexit_EX_OSFILE;
 }
 
-if test $# -lt 2; then echo "Usage: $0 interface network" >&2; exit $EX_USAGE; fi;
+if test $# -lt 2; then echo "Usage: $0 interface network" >&2; exit $sysexit_EX_USAGE; fi;
 interface="$1";
-network="$2";
 
 # we need to know where nftfirewall stores the runtime configuration directory.
 paths="/etc/nftfirewall/paths";
-runtimeconf="$paths/runtimeconf";
-runtimedir=$(cat "$runtimeconf") || pathfail "nftfirewall runtime path file" "$runtimeconf";
+runtimedirconf="$paths/runtimeconf";
+#runtimedir=$(cat "$runtimeconf") || pathfail "nftfirewall runtime path file" "$runtimeconf";
+readpath "$runtimedirconf" "nftfirewall runtime path file" "runtimedir";
 
-profile="$network";
+# load profile name from nftwifi runtime directory
+readpath "/etc/paths/nftwifi" "nftwifi main configuration directory" "wifietc";
+readpath "$wifietc/runtimeconf/path" "nftwifi runtime directory" "wifirundir";
+readpath "$wifirundir/profiles/$interface" "nftwifi interface profile selector" "profile";
 
 # assign profile for interface and try to apply firewall changes
 echo "Network profile detected: \"$profile\"";
 path="$runtimedir/profiles/$interface";
 echo "Updating nftfirewall profile selector $path";
 echo "$profile" > "$path" || updatefail "interface profile selector" "$path";
-exec nftfirewall || { echo "nftfirewall invocation failed!" >&2; exit $EX_OSERROR; };
+exec nftfirewall || { echo "nftfirewall invocation failed!" >&2; exit $sysexit_EX_OSERROR; };
