@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# borrowed from sysexits.h
+sysexit_EX_USAGE=64;
+sysexit_EX_OSFILE=72;
+
+warn() {
+	echo "[warn] $0: $1" >&2;
+}
+
+die() {
+	echo "[fatal] $0: $1" >&2;
+	exit "$2";
+}
+
+conffail() {
+	die "Unable to read config file: $1 ($2)" "$sysexit_EX_OSFILE";
+}
+
+readpath() {
+	_result=$(cat "$1") || conffail "$2" "$1";
+	eval "$3=\$_result";
+}
+
+if test $# -lt 1; then echo "Usage: $0 interface" >&2; exit $sysexit_EX_USAGE; fi;
+interface="$1";
+
+readpath "/etc/paths/nftwifi" "nftwifi configuration path" "etcdir";
+readpath "$etcdir/runtimeconf/path" "nftwifi runtime directory" "rundir";
+readpath "$rundir/profiles/$interface" "nftwifi profile selector" "profile";
+
+networkcfg="/etc/wpa.conf.d/$profile.conf";
+exec wpa_supplicant -i "$interface" -c "$networkcfg";
