@@ -27,7 +27,7 @@ updatefail() {
 	die "Updating configuration failed: $1 ($2)" $sysexit_EX_OSFILE;
 }
 
-if test $# -lt 2; then echo "Usage: $0 interface network" >&2; exit $sysexit_EX_USAGE; fi;
+if test $# -lt 1; then echo "Usage: $0 interface" >&2; exit $sysexit_EX_USAGE; fi;
 interface="$1";
 
 # we need to know where nftfirewall stores the runtime configuration directory.
