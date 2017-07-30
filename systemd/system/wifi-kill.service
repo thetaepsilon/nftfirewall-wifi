@@ -1,0 +1,7 @@
+[Unit]
+Description=stop all wireless units on all interfaces
+
+[Service]
+Type=oneshot
+ExecStart=/bin/true
+RemainAfterExit=no

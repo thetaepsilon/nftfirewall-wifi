@@ -1,0 +1,13 @@
+[Unit]
+Description=wireless network daemon for interface %i
+Before=network.target
+Wants=network.target
+# moved to drop-in fragment, can be selected per system
+# Conflicts=suspend.target
+Conflicts=wifi-kill.service
+Requires=firewall-wifi@%i.service nftwifi-init.service
+After=firewall-wifi@%i.service nftwifi-init.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/wifi-run %i
