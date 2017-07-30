@@ -5,3 +5,6 @@ Description=initialise nftwifi runtime directory
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/local/bin/nftwifi-init
+
+[Install]
+WantedBy=multi-user.target
