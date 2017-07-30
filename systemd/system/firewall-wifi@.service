@@ -1,0 +1,9 @@
+[Unit]
+Description=firewall for wifi network %i
+Requires=nftwifi-init.service
+After=nftwifi-init.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/local/bin/firewall-wifi-profile-setup %i
