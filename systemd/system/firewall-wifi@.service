@@ -1,7 +1,7 @@
 [Unit]
 Description=firewall for wifi network %i
-Requires=nftwifi-init.service
-After=nftwifi-init.service
+Requires=nftwifi-init.service firewall-ready.target
+After=nftwifi-init.service firewall-ready.target
 
 [Service]
 Type=oneshot
